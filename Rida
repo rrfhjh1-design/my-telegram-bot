@@ -1,0 +1,41 @@
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+
+# إعدادات البوت
+API_TOKEN = '7013898084:AAF23f7vR_O59N8LAt8mO7p60i-40M6G3XU'
+ADMIN_ID = 5122177695
+CHANNEL_ID = -1002037943578
+
+logging.basicConfig(level=logging.INFO)
+
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
+
+posts_db = {}
+
+@dp.message_handler(commands=['start'])
+async def send_welcome(message: types.Message):
+    await message.reply("🚀 البوت يعمل بنجاح! للبحث اكتب: ابحث [اسم المسلسل]")
+
+@dp.edited_channel_post_handler()
+async def update_post(post: types.Message):
+    if post.chat.id == CHANNEL_ID:
+        posts_db[post.text] = post.message_id
+        logging.info(f"تم تحديث المنشور: {post.text}")
+
+@dp.message_handler(lambda message: message.text.startswith('ابحث'))
+async def search_post(message: types.Message):
+    query = message.text.replace('ابحث', '').strip()
+    found = False
+    for text, msg_id in posts_db.items():
+        if query in text:
+            await bot.forward_message(message.chat.id, CHANNEL_ID, msg_id)
+            found = True
+            break
+    if not found:
+        await message.reply("❌ لم يتم العثور على المسلسل. تأكد من تعديل المنشور في القناة أولاً.")
+
+if __name__ == '__main__':
+    print("🚀 البوت بدأ العمل الآن...")
+    executor.start_polling(dp, skip_updates=True)
